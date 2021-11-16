@@ -8,7 +8,7 @@ const mongoose = require("mongoose");
 const compression = require("compression");
 const helmet = require("helmet");
 const cors = require("cors");
-const passport = require("passport");
+const passport = require("./config/authConfig");
 const localStrategy = require("passport-local").Strategy;
 const JWTstrategy = require("passport-jwt").Strategy;
 const ExtractJWT = require("passport-jwt").ExtractJwt;
@@ -135,9 +135,9 @@ app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
 
-app.get("/test", async (req, res) => {
-  res.json({ message: "pass!" });
-});
+// app.get("/test", async (req, res) => {
+//   res.json({ message: "pass!" });
+// });
 
 app.get("/session", async (req, res) => {
   if (req.isAuthenticated()) {
