@@ -17,6 +17,8 @@ exports.signup = [
         throw new Error(err);
       }
     }),
+  body("firstname").isLength(1).withMessage("Minimum length 1 characters"),
+  body("firstmane").isLength(1).withMessage("Minimum length 1 characters"),
   body("password").isLength(6).withMessage("Minimum length 6 characters"),
   body("confirm-password").custom((value, { req }) => {
     if (value !== req.body.password) {
