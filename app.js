@@ -72,13 +72,21 @@ passport.use(
     {
       usernameField: "username",
       passwordField: "password",
+      passReqToCallback: true,
     },
-    async (username, password, done) => {
+    async (req, username, password, done) => {
       try {
-        const user = await User.create({ username, password });
-
+        const firstname = req.body.firstname;
+        const lastname = req.body.lastname;
+        let user = await User.create({
+          username,
+          password,
+          firstname,
+          lastname,
+        });
         return done(null, user);
       } catch (error) {
+        console.log("api error", error);
         done(error);
       }
     }

@@ -31,6 +31,7 @@ exports.signup = [
     console.log("async");
     passport.authenticate("signup", { session: false }, (err, user, info) => {
       const errors = validationResult(req);
+      console.log("user", req.user);
       if (!errors.isEmpty()) {
         return res.json({
           username: req.body.username,
