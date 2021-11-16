@@ -13,10 +13,6 @@ const localStrategy = require("passport-local").Strategy;
 const JWTstrategy = require("passport-jwt").Strategy;
 const ExtractJWT = require("passport-jwt").ExtractJwt;
 
-// Import routes
-const indexRouter = require("./routes/index");
-const apiRouter = require("./routes/api");
-
 // Import models
 const User = require("./models/user");
 
@@ -115,7 +111,53 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(passport.initialize());
+const sessionOptions = {
+  secret: process.env.SECRET,
+  resave: false,
+  saveUninitialized: false,
+};
 
+if (process.env.NODE_ENV === "production") {
+  sessionOptions.cookie = {
+    secure: true,
+    sameSite: "none",
+  };
+}
+
+app.use(session(sessionOptions));
+
+// Initialize Passport and restore authentication state, if any, from the
+// session.
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/index.html");
+});
+
+app.get("/test", async (req, res) => {
+  res.json({ message: "pass!" });
+});
+
+app.get("/session", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const user = await User.findById(req.user._id)
+      .populate("friends")
+      .populate("friendsRequestsSent")
+      .populate("friendsRequestsRecieved");
+    res.status(200).json({
+      success: true,
+      message: "user has successfully authenticated",
+      user: user,
+    });
+  } else {
+    res.status(200).json(null);
+  }
+});
+
+// Import routes
+const indexRouter = require("./routes/index");
+const apiRouter = require("./routes/api");
 // Use Routes
 app.use("/", indexRouter);
 app.use("/api", apiRouter);
