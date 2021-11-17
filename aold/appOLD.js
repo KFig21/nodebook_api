@@ -15,11 +15,11 @@ const JWTstrategy = require("passport-jwt").Strategy;
 const ExtractJWT = require("passport-jwt").ExtractJwt;
 
 // Import routes
-const indexRouter = require("./routes/index");
+const indexRouter = require("./index");
 const apiRouter = require("./routes/api");
 
 // Import models
-const User = require("./models/user");
+const User = require("../models/user");
 
 // Passport auth
 passport.use(
