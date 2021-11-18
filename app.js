@@ -7,6 +7,8 @@ const morgan = require("morgan");
 const path = require("path");
 const createError = require("http-errors");
 const cors = require("cors");
+const multer = require("multer");
+const router = express.Router();
 
 // import routes
 const userRouter = require("./routes/users");
@@ -23,6 +25,7 @@ db.on("error", console.error.bind(console, "MongoDB connection error:"));
 app.use(express.json());
 app.use(helmet());
 app.use(morgan("common"));
+app.use("/images", express.static(path.join(__dirname, "public/images"))); // image upload to disk
 
 // cors middleware
 const corsOptions = {
@@ -31,6 +34,25 @@ const corsOptions = {
   optionSuccessStatus: 200,
 };
 app.use(cors(corsOptions)); // Use this after the variable declaration
+
+// api storage. will change late (firebase, aws...)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "public/images");
+  },
+  filename: (req, file, cb) => {
+    cb(null, req.body.name);
+  },
+});
+// api upload. will change late (firebase, aws...)
+const upload = multer({ storage: storage });
+app.post("/api/upload", upload.single("file"), (req, res) => {
+  try {
+    return res.status(200).json("File uploded successfully");
+  } catch (error) {
+    console.error(error);
+  }
+});
 
 // user routes
 app.use("/api/auth", authRouter);
