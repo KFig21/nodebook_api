@@ -41,7 +41,7 @@ const storage = multer.diskStorage({
     cb(null, "public/images");
   },
   filename: (req, file, cb) => {
-    cb(null, req.body.name);
+    cb(null, file.originalname);
   },
 });
 // api upload. will change late (firebase, aws...)
