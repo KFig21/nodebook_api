@@ -100,7 +100,7 @@ router.put("/:id/unfollow", async (req, res) => {
 });
 
 //get followers
-router.get("/followers/:userId", async (req, res) => {
+router.get("/:id/followers", async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
     const followers = await Promise.all(
@@ -111,12 +111,15 @@ router.get("/followers/:userId", async (req, res) => {
     let followersList = [];
     followers.map((follower) => {
       const { _id, username, profilePicture, firstname, lastname } = follower;
+      const followingStatus = user.followings.include(follow._id);
+      console.log(followingStatus);
       followersList.push({
         _id,
         username,
         profilePicture,
         firstname,
         lastname,
+        followingStatus,
       });
     });
     res.status(200).json(followersList);
@@ -126,7 +129,7 @@ router.get("/followers/:userId", async (req, res) => {
 });
 
 //get following
-router.get("/following/:userId", async (req, res) => {
+router.get("/:id/following", async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
     const following = await Promise.all(
@@ -138,12 +141,15 @@ router.get("/following/:userId", async (req, res) => {
     following.map((userYouFollow) => {
       const { _id, username, profilePicture, firstname, lastname } =
         userYouFollow;
+      const followingStatus = user.followings.include(userYouFollow._id);
+      console.log(followingStatus);
       followingList.push({
         _id,
         username,
         profilePicture,
         firstname,
         lastname,
+        followingStatus,
       });
     });
     res.status(200).json(followingList);
