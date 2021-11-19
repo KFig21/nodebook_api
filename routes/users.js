@@ -99,21 +99,41 @@ router.put("/:id/unfollow", async (req, res) => {
   }
 });
 
-//get friends
-router.get("/friends/:userId", async (req, res) => {
+//get followers
+router.get("/followers/:username", async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
-    const friends = await Promise.all(
-      user.followings.map((friendId) => {
-        return User.findById(friendId);
+    const followers = await Promise.all(
+      user.followers.map((followerId) => {
+        return User.findById(followerId);
       })
     );
-    let friendList = [];
-    friends.map((friend) => {
-      const { _id, username, profilePicture } = friend;
-      friendList.push({ _id, username, profilePicture });
+    let followersList = [];
+    followers.map((follower) => {
+      const { _id, username, profilePicture } = follower;
+      followersList.push({ _id, username, profilePicture });
     });
-    res.status(200).json(friendList);
+    res.status(200).json(followersList);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+//get following
+router.get("/following/:username", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    const following = await Promise.all(
+      user.followings.map((followingId) => {
+        return User.findById(followingId);
+      })
+    );
+    let followingList = [];
+    following.map((userYouFollow) => {
+      const { _id, username, profilePicture } = userYouFollow;
+      followingList.push({ _id, username, profilePicture });
+    });
+    res.status(200).json(followingList);
   } catch (err) {
     res.status(500).json(err);
   }
