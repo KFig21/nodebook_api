@@ -100,7 +100,7 @@ router.put("/:id/unfollow", async (req, res) => {
 });
 
 //get followers
-router.get("/followers/:username", async (req, res) => {
+router.get("/followers/:userId", async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
     const followers = await Promise.all(
@@ -120,9 +120,9 @@ router.get("/followers/:username", async (req, res) => {
 });
 
 //get following
-router.get("/following/:username", async (req, res) => {
+router.get("/following/:userId", async (req, res) => {
   try {
-    const user = await User.findById(req.params.username);
+    const user = await User.findById(req.params.userId);
     const following = await Promise.all(
       user.followings.map((followingId) => {
         return User.findById(followingId);
