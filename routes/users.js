@@ -110,8 +110,14 @@ router.get("/followers/:userId", async (req, res) => {
     );
     let followersList = [];
     followers.map((follower) => {
-      const { _id, username, profilePicture } = follower;
-      followersList.push({ _id, username, profilePicture });
+      const { _id, username, profilePicture, firstname, lastname } = follower;
+      followersList.push({
+        _id,
+        username,
+        profilePicture,
+        firstname,
+        lastname,
+      });
     });
     res.status(200).json(followersList);
   } catch (err) {
@@ -130,8 +136,15 @@ router.get("/following/:userId", async (req, res) => {
     );
     let followingList = [];
     following.map((userYouFollow) => {
-      const { _id, username, profilePicture } = userYouFollow;
-      followingList.push({ _id, username, profilePicture });
+      const { _id, username, profilePicture, firstname, lastname } =
+        userYouFollow;
+      followingList.push({
+        _id,
+        username,
+        profilePicture,
+        firstname,
+        lastname,
+      });
     });
     res.status(200).json(followingList);
   } catch (err) {
