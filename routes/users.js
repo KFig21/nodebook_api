@@ -122,7 +122,7 @@ router.get("/followers/:username", async (req, res) => {
 //get following
 router.get("/following/:username", async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId);
+    const user = await User.findById(req.params.username);
     const following = await Promise.all(
       user.followings.map((followingId) => {
         return User.findById(followingId);
