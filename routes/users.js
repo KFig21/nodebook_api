@@ -145,7 +145,7 @@ router.get("/:id/following", async (req, res) => {
       const { _id, username, profilePicture, firstname, lastname } =
         userYouFollow;
       const followingStatus = true;
-      const followerStatus = followers.includes(follower._id.toString());
+      const followerStatus = followers.includes(userYouFollow._id.toString());
       followingList.push({
         _id,
         username,
