@@ -12,7 +12,6 @@ router.post("/", async (req, res) => {
       let user = await User.findById(req.body.userId);
       user.posts = [...user.posts, savedPost._id];
       user = await user.save();
-      res.status(200).json(user);
     } catch (err) {
       return res.status(500).json(err);
     }
@@ -41,7 +40,18 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
-    if (post.userId === req.body.userId) {
+    if (post.userId.toString() === req.body.userId) {
+      // find and delete from the user posts array
+      try {
+        let user = await User.findById(req.body.userId);
+        let newPosts = await user.posts.filter(
+          (postIteration) => postIteration.toString() !== post._id.toString()
+        );
+        user.posts = [...newPosts];
+        user = await user.save();
+      } catch (err) {
+        return res.status(500).json(err);
+      }
       await post.deleteOne();
       res.status(200).json("the post has been deleted");
     } else {
