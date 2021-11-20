@@ -14,6 +14,7 @@ const UserSchema = new Schema(
     coverPicture: { type: String, default: "" },
     followers: { type: Array, default: [] },
     followings: { type: Array, default: [] },
+    posts: [{ type: Schema.Types.ObjectId, ref: "Post" }],
     isAdmin: { type: Boolean, default: false },
   },
   { timestamps: true }

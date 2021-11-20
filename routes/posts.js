@@ -7,6 +7,15 @@ router.post("/", async (req, res) => {
   const newPost = new Post(req.body);
   try {
     const savedPost = await newPost.save();
+    try {
+      // find and update the user posts
+      let user = await User.findById(req.body.userId);
+      user.posts = [...user.posts, savedPost._id];
+      user = await user.save();
+      res.status(200).json(user);
+    } catch (err) {
+      return res.status(500).json(err);
+    }
     res.status(200).json(savedPost);
   } catch (err) {
     res.status(500).json(err);
