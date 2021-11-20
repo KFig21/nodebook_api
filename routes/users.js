@@ -113,6 +113,7 @@ router.get("/:id/followers", async (req, res) => {
     followers.map((follower) => {
       const { _id, username, profilePicture, firstname, lastname } = follower;
       const followingStatus = followings.includes(follower._id.toString());
+      const followerStatus = true;
       followersList.push({
         _id,
         username,
@@ -120,6 +121,7 @@ router.get("/:id/followers", async (req, res) => {
         firstname,
         lastname,
         followingStatus,
+        followerStatus,
       });
     });
     res.status(200).json(followersList);
@@ -137,11 +139,13 @@ router.get("/:id/following", async (req, res) => {
         return User.findById(followingId);
       })
     );
+    const followers = await Promise.all(user.followers);
     let followingList = [];
     following.map((userYouFollow) => {
       const { _id, username, profilePicture, firstname, lastname } =
         userYouFollow;
       const followingStatus = true;
+      const followerStatus = followers.includes(follower._id.toString());
       followingList.push({
         _id,
         username,
@@ -149,6 +153,7 @@ router.get("/:id/following", async (req, res) => {
         firstname,
         lastname,
         followingStatus,
+        followerStatus,
       });
     });
     res.status(200).json(followingList);
