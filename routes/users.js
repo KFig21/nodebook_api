@@ -108,11 +108,11 @@ router.get("/:id/followers", async (req, res) => {
         return User.findById(followerId);
       })
     );
+    const followings = await Promise.all(user.followings);
     let followersList = [];
     followers.map((follower) => {
       const { _id, username, profilePicture, firstname, lastname } = follower;
-      const followingStatus = user.followings.include(follow._id);
-      console.log(followingStatus);
+      const followingStatus = followings.includes(follower._id.toString());
       followersList.push({
         _id,
         username,
@@ -141,8 +141,7 @@ router.get("/:id/following", async (req, res) => {
     following.map((userYouFollow) => {
       const { _id, username, profilePicture, firstname, lastname } =
         userYouFollow;
-      const followingStatus = user.followings.include(userYouFollow._id);
-      console.log(followingStatus);
+      const followingStatus = true;
       followingList.push({
         _id,
         username,
