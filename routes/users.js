@@ -1,6 +1,8 @@
 const User = require("../models/user");
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
+// img upload
+// var upload = require("../utils/multUpload");
 
 // update user
 router.put("/:id", async (req, res) => {
@@ -19,6 +21,7 @@ router.put("/:id", async (req, res) => {
       const user = await User.findByIdAndUpdate(req.params.id, {
         $set: req.body,
       });
+      console.log("user", user);
       res.status(200).json("Account has been updated");
     } catch (err) {
       return res.status(500).json(err);
