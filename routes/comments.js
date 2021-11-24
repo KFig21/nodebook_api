@@ -1,6 +1,16 @@
 const router = require("express").Router();
 const Comment = require("../models/comment");
 
+// get a comment
+router.get("/:id", async (req, res) => {
+  try {
+    const post = await Comment.findById(req.params.id).populate("likes");
+    res.status(200).json(post);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
 // like / dislike a comment on a post
 router.put("/:id/like", async (req, res) => {
   try {

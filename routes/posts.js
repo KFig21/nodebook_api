@@ -148,6 +148,7 @@ router.get("/:id/comments/", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id).populate("comments");
     const comments = post.comments;
+    console.log("COMMENTS---", comments);
     res.status(200).json(comments);
   } catch (err) {
     res.status(500).json(err);
