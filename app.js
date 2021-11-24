@@ -14,6 +14,7 @@ const cors = require("cors");
 const userRouter = require("./routes/users");
 const authRouter = require("./routes/auth");
 const postRouter = require("./routes/posts");
+const commentRouter = require("./routes/comments");
 
 //Set up mongoose connection
 const mongoDB = process.env.DB_CONNECTION_STRING;
@@ -40,6 +41,7 @@ app.use(cors(corsOptions)); // Use this after the variable declaration
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/posts", postRouter);
+app.use("/api/comments", commentRouter);
 
 // view engine setup - ignore
 app.set("views", path.join(__dirname, "views"));
