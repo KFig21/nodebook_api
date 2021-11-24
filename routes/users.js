@@ -16,6 +16,9 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json(err);
       }
     }
+
+    // CHECK IF USERNAME AND EMAIL EXIST
+
     try {
       // find and update the user
       const user = await User.findByIdAndUpdate(req.params.id, {

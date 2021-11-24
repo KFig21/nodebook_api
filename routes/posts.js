@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const Post = require("../models/post");
 const User = require("../models/user");
+const Comment = require("../models/comment");
 
 // create a post
 router.post("/", async (req, res) => {
@@ -81,7 +82,7 @@ router.put("/:id/like", async (req, res) => {
 // get a post
 router.get("/:id", async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).populate("comments");
     res.status(200).json(post);
   } catch (err) {
     res.status(500).json(err);
@@ -110,6 +111,44 @@ router.get("/profile/:username", async (req, res) => {
     const user = await User.findOne({ username: req.params.username });
     const posts = await Post.find({ userId: user._id });
     res.status(200).json(posts);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// COMMENTS
+// COMMENTS
+// COMMENTS
+
+// comment on a post
+router.post("/:id/comment", async (req, res) => {
+  const post = await Post.findById(req.params.id);
+  const newComment = new Comment(req.body);
+  try {
+    const savedComment = await newComment.save();
+    try {
+      // find and update the user comments
+      let user = await User.findById(req.body.userId);
+      user.comments = [...user.comments, savedComment._id];
+      user = await user.save();
+      // find and update the post's comments
+      post.comments = [...post.comments, savedComment._id];
+      user = await post.save();
+    } catch (err) {
+      return res.status(500).json(err);
+    }
+    res.status(200).json(savedPost);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// fetch comments on a post
+router.get("/:id/comments/", async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("comments");
+    const comments = post.comments;
+    res.status(200).json(comments);
   } catch (err) {
     res.status(500).json(err);
   }
