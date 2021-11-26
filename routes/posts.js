@@ -82,7 +82,9 @@ router.put("/:id/like", async (req, res) => {
 // get a post
 router.get("/:id", async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate("comments");
+    const post = await Post.findById(req.params.id)
+      .populate("comments")
+      .populate("userId");
     res.status(200).json(post);
   } catch (err) {
     res.status(500).json(err);
@@ -148,6 +150,11 @@ router.get("/:id/comments/", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id).populate("comments");
     const comments = post.comments;
+    // const comments = await Promise.all(
+    //   post.comments.map((comment) => {
+    //     return Comment.find({ _id: comment }).populate("likes");
+    //   })
+    // );
     console.log("COMMENTS---", comments);
     res.status(200).json(comments);
   } catch (err) {
