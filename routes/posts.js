@@ -40,11 +40,22 @@ router.put("/:id", async (req, res) => {
 // delete a post
 router.delete("/:id", async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
-    if (post.userId.toString() === req.body.userId) {
+    const post = await Post.findById(req.params.id)
+      .populate("userId")
+      .populate("comments");
+    const userDeletingThePost = await User.findById(req.body.userId);
+    if (
+      post.userId.toString() === req.body.userId.toString() ||
+      userDeletingThePost.isAdmin === true
+    ) {
+      // DELETE COMMENTS FIRST
+      post.comments.forEach(async (commentInPost) => {
+        let comment = await Comment.findById(commentInPost._id);
+        comment.deleteOne();
+      });
       // find and delete from the user posts array
       try {
-        let user = await User.findById(req.body.userId);
+        let user = await User.findById(post.userId);
         let newPosts = await user.posts.filter(
           (postIteration) => postIteration.toString() !== post._id.toString()
         );

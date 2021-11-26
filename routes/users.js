@@ -18,7 +18,16 @@ router.put("/:id", async (req, res) => {
     }
 
     // CHECK IF USERNAME AND EMAIL EXIST
-
+    // check if username is  already in use
+    const isUserInDB = await User.find({ username: req.body.username });
+    if (isUserInDB.length > 0) {
+      return res.status(500).json("Username already in use");
+    }
+    // check if email is  already in use
+    const isEmailInDB = await User.find({ email: req.body.email });
+    if (isEmailInDB.length > 0) {
+      return res.status(500).json("email already in use");
+    }
     try {
       // find and update the user
       const user = await User.findByIdAndUpdate(req.params.id, {
