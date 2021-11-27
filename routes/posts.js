@@ -48,13 +48,26 @@ router.delete("/:id", async (req, res) => {
       post.userId.toString() === req.body.userId.toString() ||
       userDeletingThePost.isAdmin === true
     ) {
-      // DELETE COMMENTS FIRST
-      post.comments.forEach(async (commentInPost) => {
-        let comment = await Comment.findById(commentInPost._id);
-        comment.deleteOne();
-      });
-      // find and delete from the user posts array
       try {
+        // step 1. find and delete the comments from the commenting user's comment's array
+        post.comments.forEach(async (commentInPost) => {
+          let comment = await Comment.findById(commentInPost._id).populate(
+            "userId"
+          );
+          let commentingUser = await User.findById(comment.userId).populate(
+            "comments"
+          );
+          let comments = commentingUser.comments;
+          console.log("comments", comments);
+          let newComments = await comments.filter(
+            (commentIteration) =>
+              commentIteration._id.toString() !== comment._id.toString()
+          );
+          commentingUser.comments = [...newComments];
+          commentingUser = await commentingUser.save();
+        });
+
+        // step 2. find and delete the post from the user posts array
         let user = await User.findById(post.userId);
         let newPosts = await user.posts.filter(
           (postIteration) => postIteration.toString() !== post._id.toString()
@@ -64,6 +77,12 @@ router.delete("/:id", async (req, res) => {
       } catch (err) {
         return res.status(500).json(err);
       }
+      // step 3. find and delete comments from the comments collection
+      post.comments.forEach(async (commentInPost) => {
+        let comment = await Comment.findById(commentInPost._id);
+        comment.deleteOne();
+      });
+      // step 4. finally, delete the post
       await post.deleteOne();
       res.status(200).json("the post has been deleted");
     } else {
