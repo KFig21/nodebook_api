@@ -16,17 +16,22 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json(err);
       }
     }
-
+    const userCurrentState = await User.findById(req.body.userId);
     // CHECK IF USERNAME AND EMAIL EXIST
     // check if username is  already in use
-    const isUserInDB = await User.find({ username: req.body.username });
-    if (isUserInDB.length > 0) {
-      return res.status(500).json("Username already in use");
+    const isUsernameInDB = await User.find({ username: req.body.username });
+    if (
+      isUsernameInDB.length > 0 &&
+      req.body.username !== userCurrentState.username
+    ) {
+      console.log("Username already in use");
+      return res.status(500).send({ msg: "Username already in use" });
     }
     // check if email is  already in use
     const isEmailInDB = await User.find({ email: req.body.email });
-    if (isEmailInDB.length > 0) {
-      return res.status(500).json("email already in use");
+    if (isEmailInDB.length > 0 && req.body.email !== userCurrentState.email) {
+      console.log("email already in use");
+      return res.status(500).json({ msg: "email already in use" });
     }
     try {
       // find and update the user
