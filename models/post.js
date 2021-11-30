@@ -8,6 +8,7 @@ const PostSchema = new mongoose.Schema(
     img: { type: String },
     likes: { type: Array, default: [] },
     edited: { type: Boolean, default: false },
+    editedtimestamp: { type: Date, default: Date.now },
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
   },
   { timestamps: true }

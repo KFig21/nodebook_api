@@ -7,6 +7,8 @@ const Comment = new mongoose.Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User" },
     body: { type: String, max: 500 },
     likes: { type: Array, default: [] },
+    edited: { type: Boolean, default: false },
+    editedtimestamp: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
