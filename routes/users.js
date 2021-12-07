@@ -68,7 +68,7 @@ router.get("/", async (req, res) => {
   const username = req.query.username;
   try {
     const user = userId
-      ? await User.findById(userId)
+      ? await User.findById(userId).populate("notifications")
       : await User.findOne({ username: username });
     const { password, updatedAt, ...other } = user._doc;
     res.status(200).json(other);
@@ -119,64 +119,437 @@ router.put("/:id/unfollow", async (req, res) => {
   }
 });
 
-//get followers
-router.get("/:id/followers", async (req, res) => {
+// get followers
+router.get("/:id/followers/:skip", async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    const followers = await Promise.all(
-      user.followers.map((followerId) => {
-        return User.findById(followerId);
-      })
-    );
-    const followings = await Promise.all(user.followings);
+    const skip = await parseInt(req.params.skip);
+
+    let followers = [];
+    let followerPipeline = [];
+    let followings = [];
     let followersList = [];
-    followers.map((follower) => {
-      const { _id, username, profilePicture, firstname, lastname } = follower;
-      const followingStatus = followings.includes(follower._id.toString());
-      const followerStatus = true;
-      followersList.push({
-        _id,
-        username,
-        profilePicture,
-        firstname,
-        lastname,
-        followingStatus,
-        followerStatus,
+    const followingsCheck = await Promise.all(user.followings);
+
+    const getFollowers = async () => {
+      await Promise.all(
+        user.followers.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return followers.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const getFollowings = async () => {
+      await Promise.all(
+        user.followings.map(async (followingId) => {
+          let following = await User.findById(followingId);
+          return followings.push({ _id: following._id });
+        })
+      );
+    };
+
+    const buildPipeline = async () => {
+      let pipeline;
+      if (followers.length > 0) {
+        pipeline = [
+          {
+            $match: {
+              $or: await followers,
+            },
+          },
+          { $sort: { username: 1 } },
+          { $skip: skip },
+          { $limit: 10 },
+        ];
+        followerPipeline = await User.aggregate(pipeline);
+      } else {
+        followerPipeline = [];
+      }
+    };
+
+    const buildFollowersList = async () => {
+      followerPipeline.map((follower) => {
+        const { _id, username, profilePicture, firstname, lastname } = follower;
+        const followingStatus = followingsCheck.includes(
+          follower._id.toString()
+        );
+        const followerStatus = true;
+        followersList.push({
+          _id,
+          username,
+          profilePicture,
+          firstname,
+          lastname,
+          followingStatus,
+          followerStatus,
+        });
       });
-    });
-    res.status(200).json(followersList);
+      res.status(200).json(followersList);
+    };
+
+    getFollowers()
+      .then(() => getFollowings())
+      .then(() => buildPipeline())
+      .then(() => buildFollowersList());
   } catch (err) {
     res.status(500).json(err);
   }
 });
 
-//get following
-router.get("/:id/following", async (req, res) => {
+// get following
+router.get("/:id/following/:skip", async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    const following = await Promise.all(
-      user.followings.map((followingId) => {
-        return User.findById(followingId);
-      })
-    );
-    const followers = await Promise.all(user.followers);
+    const skip = await parseInt(req.params.skip);
+
+    let followers = [];
+    let followingPipeline = [];
+    let followings = [];
     let followingList = [];
-    following.map((userYouFollow) => {
-      const { _id, username, profilePicture, firstname, lastname } =
-        userYouFollow;
-      const followingStatus = true;
-      const followerStatus = followers.includes(userYouFollow._id.toString());
-      followingList.push({
-        _id,
-        username,
-        profilePicture,
-        firstname,
-        lastname,
-        followingStatus,
-        followerStatus,
+    const followersCheck = await Promise.all(user.followers);
+
+    const getFollowings = async () => {
+      await Promise.all(
+        user.followings.map(async (followingId) => {
+          let following = await User.findById(followingId);
+          return followings.push({ _id: following._id });
+        })
+      );
+    };
+
+    const getFollowers = async () => {
+      await Promise.all(
+        user.followers.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return followers.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const buildPipeline = async () => {
+      let pipeline;
+      if (followings.length > 0) {
+        pipeline = [
+          {
+            $match: {
+              $or: await followings,
+            },
+          },
+          { $sort: { username: 1 } },
+          { $skip: skip },
+          { $limit: 10 },
+        ];
+        followingPipeline = await User.aggregate(pipeline);
+      } else {
+        followingPipeline = [];
+      }
+    };
+
+    const buildFollowersList = async () => {
+      followingPipeline.map((userYouFollow) => {
+        const { _id, username, profilePicture, firstname, lastname } =
+          userYouFollow;
+        const followingStatus = true;
+        const followerStatus = followersCheck.includes(
+          userYouFollow._id.toString()
+        );
+        followingList.push({
+          _id,
+          username,
+          profilePicture,
+          firstname,
+          lastname,
+          followingStatus,
+          followerStatus,
+        });
       });
-    });
-    res.status(200).json(followingList);
+      res.status(200).json(followingList);
+    };
+
+    getFollowings()
+      .then(() => getFollowers())
+      .then(() => buildPipeline())
+      .then(() => buildFollowersList());
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// check followers between users when visiting another users profile
+router.get("/:id/followers-profile/:user/:skip", async (req, res) => {
+  try {
+    const profileUser = await User.findById(req.params.id);
+    const loggedInUser = await User.findById(req.params.user);
+    const skip = await parseInt(req.params.skip);
+
+    let profileUserFollowers = [];
+    let profileUserFollowings = [];
+    let loggedInUserFollowers = [];
+    let loggedInUserFollowings = [];
+    let followerPipeline = [];
+    const followings = await Promise.all(loggedInUser.followings);
+    const followers = await Promise.all(loggedInUser.followers);
+
+    let followersList = [];
+
+    const getProfileUserFollowers = async () => {
+      await Promise.all(
+        profileUser.followers.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return profileUserFollowers.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const getProfileUserFollowings = async () => {
+      await Promise.all(
+        profileUser.followings.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return profileUserFollowings.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const getLoggedInUserFollowers = async () => {
+      await Promise.all(
+        loggedInUser.followers.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return loggedInUserFollowers.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const getLoggedInUserFollowings = async () => {
+      await Promise.all(
+        loggedInUser.followings.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return loggedInUserFollowings.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const buildPipeline = async () => {
+      let pipeline;
+      if (profileUserFollowers.length > 0) {
+        pipeline = [
+          {
+            $match: {
+              $or: await profileUserFollowers,
+            },
+          },
+          { $sort: { username: 1 } },
+          { $skip: skip },
+          { $limit: 10 },
+        ];
+        followerPipeline = await User.aggregate(pipeline);
+      } else {
+        followerPipeline = [];
+      }
+    };
+
+    const buildFollowersList = async () => {
+      followerPipeline.map((follower) => {
+        const { _id, username, profilePicture, firstname, lastname } = follower;
+        const followingStatus = followings.includes(follower._id.toString());
+        const followerStatus = followers.includes(follower._id.toString());
+        followersList.push({
+          _id,
+          username,
+          profilePicture,
+          firstname,
+          lastname,
+          followingStatus,
+          followerStatus,
+        });
+      });
+      res.status(200).json(followersList);
+    };
+
+    getProfileUserFollowers()
+      .then(() => getProfileUserFollowings())
+      .then(() => getLoggedInUserFollowers())
+      .then(() => getLoggedInUserFollowings())
+      .then(() => buildPipeline())
+      .then(() => buildFollowersList());
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// check followings between users when visiting another users profile
+router.get("/:id/following-profile/:user/:skip", async (req, res) => {
+  try {
+    const profileUser = await User.findById(req.params.id);
+    const loggedInUser = await User.findById(req.params.user);
+    const skip = await parseInt(req.params.skip);
+
+    let profileUserFollowers = [];
+    let profileUserFollowings = [];
+    let loggedInUserFollowers = [];
+    let loggedInUserFollowings = [];
+    let followerPipeline = [];
+    const followings = await Promise.all(loggedInUser.followings);
+    const followers = await Promise.all(loggedInUser.followers);
+
+    let followersList = [];
+
+    const getProfileUserFollowers = async () => {
+      await Promise.all(
+        profileUser.followers.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return profileUserFollowers.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const getProfileUserFollowings = async () => {
+      await Promise.all(
+        profileUser.followings.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return profileUserFollowings.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const getLoggedInUserFollowers = async () => {
+      await Promise.all(
+        loggedInUser.followers.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return loggedInUserFollowers.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const getLoggedInUserFollowings = async () => {
+      await Promise.all(
+        loggedInUser.followings.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return loggedInUserFollowings.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const buildPipeline = async () => {
+      let pipeline;
+      if (profileUserFollowings.length > 0) {
+        pipeline = [
+          {
+            $match: {
+              $or: await profileUserFollowings,
+            },
+          },
+          { $sort: { username: 1 } },
+          { $skip: skip },
+          { $limit: 10 },
+        ];
+        followerPipeline = await User.aggregate(pipeline);
+      } else {
+        followerPipeline = [];
+      }
+    };
+
+    const buildFollowersList = async () => {
+      followerPipeline.map((follower) => {
+        const { _id, username, profilePicture, firstname, lastname } = follower;
+        const followingStatus = followings.includes(follower._id.toString());
+        const followerStatus = followers.includes(follower._id.toString());
+        followersList.push({
+          _id,
+          username,
+          profilePicture,
+          firstname,
+          lastname,
+          followingStatus,
+          followerStatus,
+        });
+      });
+      res.status(200).json(followersList);
+    };
+
+    getProfileUserFollowers()
+      .then(() => getProfileUserFollowings())
+      .then(() => getLoggedInUserFollowers())
+      .then(() => getLoggedInUserFollowings())
+      .then(() => buildPipeline())
+      .then(() => buildFollowersList());
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// explore users you don't follow
+router.get("/explore/:id/:skip", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    const skip = await parseInt(req.params.skip);
+    // include the users id so they dont show up in the explore list
+    let userFollowings = [user._id];
+    let userFollowers = [];
+    let exploreList = [];
+    let exploreUsers = [];
+    const followersCheck = await Promise.all(user.followers);
+
+    const getFollowers = async () => {
+      await Promise.all(
+        user.followers.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return userFollowers.push(follower._id);
+        })
+      );
+    };
+
+    const getFollowings = async () => {
+      await Promise.all(
+        user.followings.map(async (followingId) => {
+          let following = await User.findById(followingId);
+          return userFollowings.push(following._id);
+        })
+      );
+    };
+
+    const buildPipeline = async () => {
+      const pipeline = [
+        {
+          $match: {
+            _id: {
+              $nin: userFollowings,
+            },
+          },
+        },
+        { $sort: { username: 1 } },
+        { $skip: skip },
+        { $limit: 10 },
+      ];
+
+      exploreUsers = await User.aggregate(pipeline);
+    };
+
+    const buildExploreList = async () => {
+      exploreUsers.map((exploreUser) => {
+        const { _id, username, profilePicture, firstname, lastname } =
+          exploreUser;
+        const followingStatus = false;
+        const followerStatus = followersCheck.includes(
+          exploreUser._id.toString()
+        );
+        exploreList.push({
+          _id,
+          username,
+          profilePicture,
+          firstname,
+          lastname,
+          followingStatus,
+          followerStatus,
+        });
+      });
+      res.status(200).json(exploreList);
+    };
+
+    getFollowers()
+      .then(() => getFollowings())
+      .then(() => buildPipeline())
+      .then(() => buildExploreList());
   } catch (err) {
     res.status(500).json(err);
   }

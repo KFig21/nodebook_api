@@ -15,6 +15,7 @@ const userRouter = require("./routes/users");
 const authRouter = require("./routes/auth");
 const postRouter = require("./routes/posts");
 const commentRouter = require("./routes/comments");
+const notificationRouter = require("./routes/notifications");
 
 //Set up mongoose connection
 const mongoDB = process.env.DB_CONNECTION_STRING;
@@ -42,6 +43,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/posts", postRouter);
 app.use("/api/comments", commentRouter);
+app.use("/api/notifications", notificationRouter);
 
 // view engine setup - ignore
 app.set("views", path.join(__dirname, "views"));
@@ -58,8 +60,12 @@ app.set("view engine", "jade");
 // const socketIo = require("socket.io");
 // const io = socketIo(server, {
 //   cors: {
-//     origin: "*",
+//     origin: "http://localhost",
+//     methods: ["GET", "POST"],
+//     credentials: true,
+//     transports: ["websocket", "polling"],
 //   },
+//   allowEIO3: true,
 // });
 
 // const users = {};
@@ -71,9 +77,8 @@ app.set("view engine", "jade");
 //   });
 
 //   socket.on("notification", async (notification) => {
-//     if (notification.sender === notification.recipient) return;
-
 //     console.log("test");
+//     if (notification.sender === notification.recipient) return;
 
 //     const newNotification = await Notification.findOneAndUpdate(
 //       notification,

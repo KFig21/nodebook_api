@@ -9,6 +9,7 @@ const Comment = new mongoose.Schema(
     likes: { type: Array, default: [] },
     edited: { type: Boolean, default: false },
     editedtimestamp: { type: Date, default: Date.now },
+    notifications: [{ type: Schema.Types.ObjectId, ref: "Notification" }],
   },
   { timestamps: true }
 );

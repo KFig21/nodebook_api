@@ -19,6 +19,7 @@ const UserSchema = new Schema(
     followings: { type: Array, default: [] },
     posts: [{ type: Schema.Types.ObjectId, ref: "Post" }],
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
+    notifications: [{ type: Schema.Types.ObjectId, ref: "Notification" }],
     isAdmin: { type: Boolean, default: false },
   },
   { timestamps: true }

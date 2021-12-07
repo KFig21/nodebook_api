@@ -1,36 +1,16 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-const NotificationSchema = new Schema({
-  sender: {
-    type: mongoose.Types.ObjectId,
-    ref: "user",
+const NotificationSchema = new mongoose.Schema(
+  {
+    sender: { type: Schema.Types.ObjectId, ref: "User" },
+    recipient: { type: Schema.Types.ObjectId, ref: "User" },
+    postId: { type: Schema.Types.ObjectId, ref: "Post", default: null },
+    commentId: { type: Schema.Types.ObjectId, ref: "Comment", default: null },
+    type: { type: String },
+    seen: { type: Boolean, default: false },
   },
-  recipient: {
-    type: mongoose.Types.ObjectId,
-    ref: "user",
-  },
-  sender: {
-    type: mongoose.Types.ObjectId,
-    ref: "user",
-  },
-  post: {
-    type: mongoose.Types.ObjectId,
-    ref: "post",
-  },
-  type: {
-    type: String,
-  },
-  seen: {
-    type: Boolean,
-    default: false,
-  },
-  date: {
-    type: Date,
-    default: Date.now,
-  },
-});
-module.exports = Notification = mongoose.model(
-  "notification",
-  NotificationSchema
+  { timestamps: true }
 );
+
+module.exports = mongoose.model("Notification", NotificationSchema);

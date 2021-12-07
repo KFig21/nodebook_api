@@ -10,6 +10,7 @@ const PostSchema = new mongoose.Schema(
     edited: { type: Boolean, default: false },
     editedtimestamp: { type: Date, default: Date.now },
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
+    notifications: [{ type: Schema.Types.ObjectId, ref: "Notification" }],
   },
   { timestamps: true }
 );
