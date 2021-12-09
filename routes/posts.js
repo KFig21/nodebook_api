@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const Post = require("../models/post");
 const User = require("../models/user");
+const Like = require("../models/like");
 const Comment = require("../models/comment");
 const Notification = require("../models/notification");
 
@@ -44,6 +45,7 @@ router.delete("/:id", async (req, res) => {
     const post = await Post.findById(req.params.id)
       .populate("userId")
       .populate("comments")
+      .populate("likes")
       .populate("notifications");
     const userDeletingThePost = await User.findById(req.body.userId);
     if (
@@ -128,7 +130,16 @@ router.delete("/:id", async (req, res) => {
           comment.deleteOne();
         });
       };
-      // step 5. finally, delete the post
+
+      // step 5. find and delete likes from the likes collection
+      const removeFromLikesCollection = async () => {
+        post.likes.forEach(async (postLike) => {
+          let like = await Like.findById(postLike._id);
+          like.deleteOne();
+        });
+      };
+
+      // step 6. finally, delete the post
       const removePost = async () => {
         await post.deleteOne();
       };
@@ -138,6 +149,7 @@ router.delete("/:id", async (req, res) => {
         .then(() => removeCommentsFromCommentors())
         .then(() => removeFromUserPosts())
         .then(() => removeFromCommentsCollection())
+        .then(() => removeFromLikesCollection())
         .then(() => removePost());
 
       res.status(200).json("the post has been deleted");
@@ -153,12 +165,36 @@ router.delete("/:id", async (req, res) => {
 router.put("/:id/like", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
-    if (!post.likes.includes(req.body.userId)) {
+    // likerIds
+    if (!post.likerIds.includes(req.body.userId)) {
       await post.updateOne({ $push: { likes: req.body.userId } });
-      res.status(200).json("The post has been liked");
     } else {
       await post.updateOne({ $pull: { likes: req.body.userId } });
+    }
+
+    // like objects
+    const checkExists = await Like.find({
+      userId: req.body.userId,
+      postId: req.body.postId,
+      type: "postLike",
+      commentId: null,
+    });
+    console.log("checkExists", checkExists);
+    if (checkExists.length > 0) {
+      const likeToRemove = await Like.findById(checkExists[0]._id);
+      await post.updateOne({ $pull: { likes: likeToRemove._id } });
+      await likeToRemove.deleteOne();
       res.status(200).json("The post has been disliked");
+    } else {
+      const like = new Like({
+        userId: req.body.userId,
+        postId: req.body.postId,
+        type: "postLike",
+        commentId: null,
+      });
+      await post.updateOne({ $push: { likes: like } });
+      like = await like.save();
+      res.status(200).json("The post has been liked");
     }
   } catch (err) {
     res.status(500).json(err);
@@ -168,7 +204,9 @@ router.put("/:id/like", async (req, res) => {
 // get a post
 router.get("/:id", async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate("comments");
+    const post = await Post.findById(req.params.id)
+      .populate("comments")
+      .populate("likes");
     res.status(200).json(post);
   } catch (err) {
     res.status(500).json(err);
@@ -247,6 +285,94 @@ router.get("/profile/:username/:skip", async (req, res) => {
     ];
     const profilePosts = await Post.aggregate(pipeline);
     res.status(200).json(profilePosts);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// get likers of a post
+router.get("/:postId/likers/:skip/:userId", async (req, res) => {
+  const post = await Post.findById(req.params.postId).populate("likes");
+  const user = await User.findById(req.params.userId);
+  const skip = await parseInt(req.params.skip);
+  try {
+    let likers = [];
+    let likerPipeline = [];
+    let followers = [];
+    let followings = [];
+    let likersList = [];
+    const followingsCheck = await Promise.all(user.followings);
+
+    const getLikers = async () => {
+      await Promise.all(
+        post.likes.map(async (likeId) => {
+          let user = await User.findById(likeId.userId);
+          return likers.push({ _id: user._id });
+        })
+      );
+    };
+
+    const getFollowers = async () => {
+      await Promise.all(
+        user.followers.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return followers.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const getFollowings = async () => {
+      await Promise.all(
+        user.followings.map(async (followingId) => {
+          let following = await User.findById(followingId);
+          return followings.push({ _id: following._id });
+        })
+      );
+    };
+
+    const buildPipeline = async () => {
+      let pipeline;
+      if (likers.length > 0) {
+        pipeline = [
+          {
+            $match: {
+              $or: await likers,
+            },
+          },
+          { $sort: { username: 1 } },
+          { $skip: skip },
+          { $limit: 10 },
+        ];
+        likerPipeline = await User.aggregate(pipeline);
+      } else {
+        likerPipeline = [];
+      }
+    };
+
+    const buildlikersList = async () => {
+      likerPipeline.map((liker) => {
+        const { _id, username, profilePicture, firstname, lastname } = liker;
+        const followingStatus = followingsCheck.includes(liker._id.toString());
+        const followerStatus = true;
+        likersList.push({
+          _id,
+          username,
+          profilePicture,
+          firstname,
+          lastname,
+          followingStatus,
+          followerStatus,
+        });
+      });
+      console.log("likersList", likersList);
+      res.status(200).json(likersList);
+    };
+
+    getLikers()
+      .then(() => getFollowers())
+      .then(() => getFollowings())
+      .then(() => buildPipeline())
+      .then(() => buildlikersList());
   } catch (err) {
     res.status(500).json(err);
   }
