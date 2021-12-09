@@ -49,7 +49,7 @@ router.delete("/:id", async (req, res) => {
       .populate("notifications");
     const userDeletingThePost = await User.findById(req.body.userId);
     if (
-      post.userId.toString() === req.body.userId.toString() ||
+      post.userId._id.toString() === req.body.userId.toString() ||
       userDeletingThePost.isAdmin === true
     ) {
       // step 1. find and delete all outstanding notifications attached to the post
@@ -133,10 +133,12 @@ router.delete("/:id", async (req, res) => {
 
       // step 5. find and delete likes from the likes collection
       const removeFromLikesCollection = async () => {
-        post.likes.forEach(async (postLike) => {
-          let like = await Like.findById(postLike._id);
-          like.deleteOne();
-        });
+        if (post.likes) {
+          post.likes.forEach(async (postLike) => {
+            let like = await Like.findById(postLike._id);
+            like.deleteOne();
+          });
+        }
       };
 
       // step 6. finally, delete the post
@@ -167,9 +169,9 @@ router.put("/:id/like", async (req, res) => {
     const post = await Post.findById(req.params.id);
     // likerIds
     if (!post.likerIds.includes(req.body.userId)) {
-      await post.updateOne({ $push: { likes: req.body.userId } });
+      await post.updateOne({ $push: { likerIds: req.body.userId } });
     } else {
-      await post.updateOne({ $pull: { likes: req.body.userId } });
+      await post.updateOne({ $pull: { likerIds: req.body.userId } });
     }
 
     // like objects
