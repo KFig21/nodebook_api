@@ -5,6 +5,49 @@ const Like = require("../models/like");
 const Comment = require("../models/comment");
 const Notification = require("../models/notification");
 
+// img
+// img
+// img
+const multer = require("multer");
+const upload = multer({
+  limits: {
+    fileSize: 1000000,
+  },
+  fileFilter(req, file, cb) {
+    if (!file.originalname.match(/\.(jpg|png|JPG|PNG|JPEG|jpeg)$/))
+      return cb(new Error("This is not a correct format of the file"));
+    cb(undefined, true);
+  },
+});
+
+// create a post with an image
+router.post(
+  "/image",
+  upload.single("file"),
+  async (req, res) => {
+    const newPost = new Post({
+      userId: req.body.userId,
+      body: req.body.body,
+      img: req.file.buffer,
+    });
+    try {
+      const savedPost = await newPost.save();
+      try {
+        // find and update the user posts
+        let user = await User.findById(req.body.userId);
+        user.posts = [...user.posts, savedPost._id];
+        user = await user.save();
+      } catch (err) {
+        return res.status(500).json(err);
+      }
+      res.status(200).json(savedPost);
+    } catch (err) {
+      res.status(500).json(err);
+    }
+  },
+  (err, req, res, next) => res.status(404).send({ error: err.message })
+);
+
 // create a post
 router.post("/", async (req, res) => {
   const newPost = new Post(req.body);
@@ -259,16 +302,6 @@ router.get("/timeline/:userId/:skip", async (req, res) => {
     getUserPosts()
       .then(() => getFollowingsPosts())
       .then(() => buildPipeline());
-    // const userPosts = await Post.find({ userId: currentUser._id }, undefined, {
-    //   skip,
-    //   limit: 1,
-    // });
-    // const friendPosts = await Promise.all(
-    //   currentUser.followings.map((friendId) => {
-    //     return Post.find({ userId: friendId });
-    //   })
-    // );
-    // res.status(200).json(userPosts.concat(...friendPosts));
   } catch (err) {
     res.status(500).json(err);
   }
