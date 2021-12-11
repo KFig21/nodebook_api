@@ -252,7 +252,10 @@ router.get("/:id", async (req, res) => {
     const post = await Post.findById(req.params.id)
       .populate("comments")
       .populate("likes");
-    res.status(200).json(post);
+    const pipeline = [{ $match: { _id: post._id } }];
+    const data = await Post.aggregate(pipeline);
+    console.log(data);
+    res.status(200).json(...data);
   } catch (err) {
     res.status(500).json(err);
   }
