@@ -13,8 +13,8 @@ const UserSchema = new Schema(
     location: { type: String, default: "" },
     birthday: { type: String, default: "" },
     about: { type: String, default: "", max: 280 },
-    profilePicture: { type: String, default: "" },
-    coverPicture: { type: String, default: "" },
+    profilePicture: { type: Buffer },
+    coverPicture: { type: Buffer },
     followers: { type: Array, default: [] },
     followings: { type: Array, default: [] },
     posts: [{ type: Schema.Types.ObjectId, ref: "Post" }],
@@ -39,6 +39,4 @@ const UserSchema = new Schema(
 //   return compare;
 // };
 
-const User = mongoose.model("User", UserSchema);
-
-module.exports = User;
+module.exports = mongoose.model("User", UserSchema);

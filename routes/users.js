@@ -1,8 +1,39 @@
 const User = require("../models/user");
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
-// img upload
-// var upload = require("../utils/multUpload");
+// img
+// img
+// img
+const multer = require("multer");
+const upload = multer({
+  limits: {
+    fileSize: 1000000,
+  },
+  fileFilter(req, file, cb) {
+    if (!file.originalname.match(/\.(jpg|png|JPG|PNG|JPEG|jpeg)$/))
+      return cb(new Error("This is not a correct format of the file"));
+    cb(undefined, true);
+  },
+});
+
+// update user avatar
+router.put(
+  "/avatar",
+  upload.single("file"),
+  async (req, res) => {
+    const avatar = await req.file.buffer;
+    try {
+      // find and update the user
+      let user = await User.findById(req.body.userId);
+      user.profilePicture = avatar;
+      user = await user.save();
+    } catch (err) {
+      return res.status(500).json(err);
+    }
+    res.status(200).json(avatar);
+  },
+  (err, req, res, next) => res.status(404).send({ error: err.message })
+);
 
 // update user
 router.put("/:id", async (req, res) => {
@@ -70,8 +101,10 @@ router.get("/", async (req, res) => {
     const user = userId
       ? await User.findById(userId).populate("notifications")
       : await User.findOne({ username: username });
-    const { password, updatedAt, ...other } = user._doc;
-    res.status(200).json(other);
+    // const { password, updatedAt, ...other } = user._doc;
+    const pipeline = [{ $match: { _id: user._id } }];
+    const profile = await User.aggregate(pipeline);
+    res.status(200).json(...profile);
   } catch (err) {
     res.status(500).json(err);
   }
