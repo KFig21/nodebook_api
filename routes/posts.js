@@ -254,7 +254,6 @@ router.get("/:id", async (req, res) => {
       .populate("likes");
     const pipeline = [{ $match: { _id: post._id } }];
     const data = await Post.aggregate(pipeline);
-    console.log(data);
     res.status(200).json(...data);
   } catch (err) {
     res.status(500).json(err);
@@ -267,7 +266,6 @@ router.get("/timeline/:userId/:skip", async (req, res) => {
     let timelineUsers = [];
     const currentUser = await User.findById(req.params.userId);
     const skip = await parseInt(req.params.skip);
-    console.log(skip);
 
     const getUserPosts = async () => {
       timelineUsers.push({
@@ -402,7 +400,6 @@ router.get("/:postId/likers/:skip/:userId", async (req, res) => {
           followerStatus,
         });
       });
-      console.log("likersList", likersList);
       res.status(200).json(likersList);
     };
 

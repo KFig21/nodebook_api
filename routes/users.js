@@ -35,6 +35,25 @@ router.put(
   (err, req, res, next) => res.status(404).send({ error: err.message })
 );
 
+// update user cover photo
+router.put(
+  "/cover",
+  upload.single("file"),
+  async (req, res) => {
+    const cover = await req.file.buffer;
+    try {
+      // find and update the user
+      let user = await User.findById(req.body.userId);
+      user.coverPicture = cover;
+      user = await user.save();
+    } catch (err) {
+      return res.status(500).json(err);
+    }
+    res.status(200).json(cover);
+  },
+  (err, req, res, next) => res.status(404).send({ error: err.message })
+);
+
 // update user
 router.put("/:id", async (req, res) => {
   // check if the correct user or if user is an admin
