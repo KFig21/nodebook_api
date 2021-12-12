@@ -5,7 +5,22 @@ const bcrypt = require("bcrypt");
 // img
 // img
 const multer = require("multer");
+const { uploadFile, deleteFile } = require("../s3");
+const fs = require("fs");
+const util = require("util");
+const unlinkFile = util.promisify(fs.unlink);
+// const upload = multer({
+//   limits: {
+//     fileSize: 1000000,
+//   },
+//   fileFilter(req, file, cb) {
+//     if (!file.originalname.match(/\.(jpg|png|JPG|PNG|JPEG|jpeg)$/))
+//       return cb(new Error("This is not a correct format of the file"));
+//     cb(undefined, true);
+//   },
+// });
 const upload = multer({
+  dest: "uploads",
   limits: {
     fileSize: 1000000,
   },
@@ -17,42 +32,40 @@ const upload = multer({
 });
 
 // update user avatar
-router.put(
-  "/avatar",
-  upload.single("file"),
-  async (req, res) => {
-    const avatar = await req.file.buffer;
-    try {
-      // find and update the user
-      let user = await User.findById(req.body.userId);
-      user.profilePicture = avatar;
-      user = await user.save();
-    } catch (err) {
-      return res.status(500).json(err);
+router.put("/avatar", upload.single("file"), async (req, res) => {
+  const file = req.file;
+  const result = await uploadFile(file);
+  try {
+    // find and update the user
+    let user = await User.findById(req.body.userId);
+    if (user.avatar) {
+      await deleteFile(user.avatar);
     }
-    res.status(200).json(avatar);
-  },
-  (err, req, res, next) => res.status(404).send({ error: err.message })
-);
+    user.avatar = result.key;
+    user = await user.save();
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+  res.status(200).json(result);
+});
 
 // update user cover photo
-router.put(
-  "/cover",
-  upload.single("file"),
-  async (req, res) => {
-    const cover = await req.file.buffer;
-    try {
-      // find and update the user
-      let user = await User.findById(req.body.userId);
-      user.coverPicture = cover;
-      user = await user.save();
-    } catch (err) {
-      return res.status(500).json(err);
+router.put("/cover", upload.single("file"), async (req, res) => {
+  const file = req.file;
+  const result = await uploadFile(file);
+  try {
+    // find and update the user
+    let user = await User.findById(req.body.userId);
+    if (user.cover) {
+      await deleteFile(user.cover);
     }
-    res.status(200).json(cover);
-  },
-  (err, req, res, next) => res.status(404).send({ error: err.message })
-);
+    user.cover = result.key;
+    user = await user.save();
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+  res.status(200).json(result);
+});
 
 // update user
 router.put("/:id", async (req, res) => {
@@ -237,7 +250,7 @@ router.get("/:id/followers/:skip", async (req, res) => {
 
     const buildFollowersList = async () => {
       followerPipeline.map((follower) => {
-        const { _id, username, profilePicture, firstname, lastname } = follower;
+        const { _id, username, avatar, firstname, lastname } = follower;
         const followingStatus = followingsCheck.includes(
           follower._id.toString()
         );
@@ -245,7 +258,7 @@ router.get("/:id/followers/:skip", async (req, res) => {
         followersList.push({
           _id,
           username,
-          profilePicture,
+          avatar,
           firstname,
           lastname,
           followingStatus,
@@ -315,8 +328,7 @@ router.get("/:id/following/:skip", async (req, res) => {
 
     const buildFollowersList = async () => {
       followingPipeline.map((userYouFollow) => {
-        const { _id, username, profilePicture, firstname, lastname } =
-          userYouFollow;
+        const { _id, username, avatar, firstname, lastname } = userYouFollow;
         const followingStatus = true;
         const followerStatus = followersCheck.includes(
           userYouFollow._id.toString()
@@ -324,7 +336,7 @@ router.get("/:id/following/:skip", async (req, res) => {
         followingList.push({
           _id,
           username,
-          profilePicture,
+          avatar,
           firstname,
           lastname,
           followingStatus,
@@ -417,13 +429,13 @@ router.get("/:id/followers-profile/:user/:skip", async (req, res) => {
 
     const buildFollowersList = async () => {
       followerPipeline.map((follower) => {
-        const { _id, username, profilePicture, firstname, lastname } = follower;
+        const { _id, username, avatar, firstname, lastname } = follower;
         const followingStatus = followings.includes(follower._id.toString());
         const followerStatus = followers.includes(follower._id.toString());
         followersList.push({
           _id,
           username,
-          profilePicture,
+          avatar,
           firstname,
           lastname,
           followingStatus,
@@ -518,13 +530,13 @@ router.get("/:id/following-profile/:user/:skip", async (req, res) => {
 
     const buildFollowersList = async () => {
       followerPipeline.map((follower) => {
-        const { _id, username, profilePicture, firstname, lastname } = follower;
+        const { _id, username, avatar, firstname, lastname } = follower;
         const followingStatus = followings.includes(follower._id.toString());
         const followerStatus = followers.includes(follower._id.toString());
         followersList.push({
           _id,
           username,
-          profilePicture,
+          avatar,
           firstname,
           lastname,
           followingStatus,
@@ -594,8 +606,7 @@ router.get("/explore/:id/:skip", async (req, res) => {
 
     const buildExploreList = async () => {
       exploreUsers.map((exploreUser) => {
-        const { _id, username, profilePicture, firstname, lastname } =
-          exploreUser;
+        const { _id, username, avatar, firstname, lastname } = exploreUser;
         const followingStatus = false;
         const followerStatus = followersCheck.includes(
           exploreUser._id.toString()
@@ -603,7 +614,7 @@ router.get("/explore/:id/:skip", async (req, res) => {
         exploreList.push({
           _id,
           username,
-          profilePicture,
+          avatar,
           firstname,
           lastname,
           followingStatus,

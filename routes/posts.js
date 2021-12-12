@@ -9,7 +9,22 @@ const Notification = require("../models/notification");
 // img
 // img
 const multer = require("multer");
+const { uploadFile, deleteFile } = require("../s3");
+const fs = require("fs");
+const util = require("util");
+const unlinkFile = util.promisify(fs.unlink);
+// const upload = multer({
+//   limits: {
+//     fileSize: 1000000,
+//   },
+//   fileFilter(req, file, cb) {
+//     if (!file.originalname.match(/\.(jpg|png|JPG|PNG|JPEG|jpeg)$/))
+//       return cb(new Error("This is not a correct format of the file"));
+//     cb(undefined, true);
+//   },
+// });
 const upload = multer({
+  dest: "uploads",
   limits: {
     fileSize: 1000000,
   },
@@ -25,10 +40,14 @@ router.post(
   "/image",
   upload.single("file"),
   async (req, res) => {
+    const file = req.file;
+
+    const result = await uploadFile(file);
+
     const newPost = new Post({
       userId: req.body.userId,
       body: req.body.body,
-      img: req.file.buffer,
+      img: result.key,
     });
     try {
       const savedPost = await newPost.save();
@@ -40,12 +59,15 @@ router.post(
       } catch (err) {
         return res.status(500).json(err);
       }
-      res.status(200).json(savedPost);
     } catch (err) {
       res.status(500).json(err);
     }
+
+    await unlinkFile(file.path);
+    console.log("result", result);
+    res.send({ imagePath: `images/${result.Key}` });
   },
-  (err, req, res, next) => res.status(404).send({ error: err.message })
+  (err, req, res, next) => res.status(403).json("an error occurred")
 );
 
 // create a post
@@ -185,6 +207,13 @@ router.delete("/:id", async (req, res) => {
       };
 
       // step 6. finally, delete the post
+      const removeImgFromBucket = async () => {
+        if (post.img) {
+          await deleteFile(post.img);
+        }
+      };
+
+      // step 7. finally, delete the post
       const removePost = async () => {
         await post.deleteOne();
       };
@@ -195,6 +224,7 @@ router.delete("/:id", async (req, res) => {
         .then(() => removeFromUserPosts())
         .then(() => removeFromCommentsCollection())
         .then(() => removeFromLikesCollection())
+        .then(() => removeImgFromBucket())
         .then(() => removePost());
 
       res.status(200).json("the post has been deleted");

@@ -8,6 +8,7 @@
     "serverstart": "DEBUG=nodebook-api:* npm run devstart"
   },
   "dependencies": {
+    "aws-sdk": "^2.1046.0",
     "bcrypt": "^5.0.1",
     "compression": "^1.7.4",
     "cookie-parser": "~1.4.4",

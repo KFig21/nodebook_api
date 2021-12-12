@@ -5,7 +5,7 @@ const PostSchema = new mongoose.Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User" },
     body: { type: String, max: 500 },
-    img: { type: Buffer },
+    img: { type: String },
     likerIds: { type: Array, default: [] },
     likes: [{ type: Schema.Types.ObjectId, ref: "Like" }],
     edited: { type: Boolean, default: false },
