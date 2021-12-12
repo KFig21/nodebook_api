@@ -402,13 +402,13 @@ router.get("/:postId/likers/:skip/:userId", async (req, res) => {
 
     const buildlikersList = async () => {
       likerPipeline.map((liker) => {
-        const { _id, username, profilePicture, firstname, lastname } = liker;
+        const { _id, username, avatar, firstname, lastname } = liker;
         const followingStatus = followingsCheck.includes(liker._id.toString());
         const followerStatus = true;
         likersList.push({
           _id,
           username,
-          profilePicture,
+          avatar,
           firstname,
           lastname,
           followingStatus,
