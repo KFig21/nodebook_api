@@ -4,25 +4,12 @@ const User = require("../models/user");
 const Like = require("../models/like");
 const Comment = require("../models/comment");
 const Notification = require("../models/notification");
-
-// img
-// img
-// img
+// img upload
 const multer = require("multer");
 const { uploadFile, deleteFile } = require("../s3");
 const fs = require("fs");
 const util = require("util");
 const unlinkFile = util.promisify(fs.unlink);
-// const upload = multer({
-//   limits: {
-//     fileSize: 1000000,
-//   },
-//   fileFilter(req, file, cb) {
-//     if (!file.originalname.match(/\.(jpg|png|JPG|PNG|JPEG|jpeg)$/))
-//       return cb(new Error("This is not a correct format of the file"));
-//     cb(undefined, true);
-//   },
-// });
 const upload = multer({
   dest: "uploads",
   limits: {
@@ -41,9 +28,7 @@ router.post(
   upload.single("file"),
   async (req, res) => {
     const file = req.file;
-
     const result = await uploadFile(file);
-
     const newPost = new Post({
       userId: req.body.userId,
       body: req.body.body,
