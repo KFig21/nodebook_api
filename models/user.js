@@ -18,6 +18,7 @@ const UserSchema = new Schema(
     followers: { type: Array, default: [] },
     followings: { type: Array, default: [] },
     posts: [{ type: Schema.Types.ObjectId, ref: "Post" }],
+    images: [{ type: Schema.Types.ObjectId, ref: "Image" }],
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
     notifications: [{ type: Schema.Types.ObjectId, ref: "Notification" }],
     isAdmin: { type: Boolean, default: false },

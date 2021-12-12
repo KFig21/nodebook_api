@@ -4,6 +4,7 @@ const User = require("../models/user");
 const Like = require("../models/like");
 const Comment = require("../models/comment");
 const Notification = require("../models/notification");
+const Image = require("../models/image");
 // img upload
 const multer = require("multer");
 const { uploadFile, deleteFile } = require("../s3");
@@ -27,20 +28,42 @@ router.post(
   "/image",
   upload.single("file"),
   async (req, res) => {
+    // save image and upload to AWS
     const file = req.file;
     const result = await uploadFile(file);
+    // create new post
     const newPost = new Post({
       userId: req.body.userId,
       body: req.body.body,
       img: result.key,
     });
     try {
+      // save post to mongodb
       const savedPost = await newPost.save();
+      // create new image
+      const newImage = new Image({
+        userId: req.body.userId,
+        postId: savedPost._id,
+        body: req.body.body,
+        img: result.key,
+      });
+      console.log("NEWIMAGE", newImage);
+      // save image to mongodb
+      const savedImage = await newImage.save();
       try {
-        // find and update the user posts
+        // find and update the user posts and images
         let user = await User.findById(req.body.userId);
         user.posts = [...user.posts, savedPost._id];
+        user.images = [...user.images, savedImage._id];
         user = await user.save();
+      } catch (err) {
+        return res.status(500).json(err);
+      }
+      try {
+        // update the post to include the image id
+        let post = await Post.findById(savedPost._id);
+        post.imgId = savedImage._id;
+        post = await post.save();
       } catch (err) {
         return res.status(500).json(err);
       }
@@ -52,7 +75,11 @@ router.post(
     console.log("result", result);
     res.send({ imagePath: `images/${result.Key}` });
   },
-  (err, req, res, next) => res.status(403).json("an error occurred")
+  (err, req, res, next) => {
+    if (err) {
+      res.status(403).json("an error occurred");
+    }
+  }
 );
 
 // create a post
@@ -96,6 +123,7 @@ router.delete("/:id", async (req, res) => {
       .populate("userId")
       .populate("comments")
       .populate("likes")
+      .populate("imgId")
       .populate("notifications");
     const userDeletingThePost = await User.findById(req.body.userId);
     if (
@@ -191,14 +219,35 @@ router.delete("/:id", async (req, res) => {
         }
       };
 
-      // step 6. finally, delete the post
+      // step 6. if an image, delete from the users images
+      const removeFromUserImages = async () => {
+        if (post.img) {
+          let user = await User.findById(post.userId);
+          let newImages = await user.images.filter(
+            (imageIteration) =>
+              imageIteration.toString() !== post.imgId._id.toString()
+          );
+          user.images = [...newImages];
+          user = await user.save();
+        }
+      };
+
+      // step 7. if an image, delete from the images collection
+      const removeImgFromImages = async () => {
+        if (post.img) {
+          let image = await Image.findById(post.imgId._id);
+          await image.deleteOne();
+        }
+      };
+
+      // step 8. delete the image from AWS
       const removeImgFromBucket = async () => {
         if (post.img) {
           await deleteFile(post.img);
         }
       };
 
-      // step 7. finally, delete the post
+      // step 9. finally, delete the post
       const removePost = async () => {
         await post.deleteOne();
       };
@@ -209,6 +258,8 @@ router.delete("/:id", async (req, res) => {
         .then(() => removeFromUserPosts())
         .then(() => removeFromCommentsCollection())
         .then(() => removeFromLikesCollection())
+        .then(() => removeFromUserImages())
+        .then(() => removeImgFromImages())
         .then(() => removeImgFromBucket())
         .then(() => removePost());
 
@@ -336,6 +387,24 @@ router.get("/profile/:username/:skip", async (req, res) => {
     ];
     const profilePosts = await Post.aggregate(pipeline);
     res.status(200).json(profilePosts);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+// get profile images
+router.get("/profile/:username/images/:skip", async (req, res) => {
+  try {
+    const skip = await parseInt(req.params.skip);
+    const user = await User.findOne({ username: req.params.username });
+    const pipeline = [
+      { $match: { userId: user._id } },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: 6 },
+    ];
+    const profileImages = await Image.aggregate(pipeline);
+    res.status(200).json(profileImages);
   } catch (err) {
     res.status(500).json(err);
   }
