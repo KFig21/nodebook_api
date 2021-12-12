@@ -10,7 +10,7 @@ const unlinkFile = util.promisify(fs.unlink);
 const upload = multer({
   dest: "uploads",
   limits: {
-    fileSize: 1000000,
+    fileSize: 10000000,
   },
   fileFilter(req, file, cb) {
     if (!file.originalname.match(/\.(jpg|png|JPG|PNG|JPEG|jpeg)$/))
@@ -53,6 +53,7 @@ router.put("/cover", upload.single("file"), async (req, res) => {
   } catch (err) {
     return res.status(500).json(err);
   }
+  await unlinkFile(file.path);
   res.status(200).json(result);
 });
 

@@ -13,7 +13,7 @@ const unlinkFile = util.promisify(fs.unlink);
 const upload = multer({
   dest: "uploads",
   limits: {
-    fileSize: 1000000,
+    fileSize: 10000000,
   },
   fileFilter(req, file, cb) {
     if (!file.originalname.match(/\.(jpg|png|JPG|PNG|JPEG|jpeg)$/))
