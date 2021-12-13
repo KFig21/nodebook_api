@@ -318,6 +318,7 @@ router.get("/:id", async (req, res) => {
     const post = await Post.findById(req.params.id)
       .populate("comments")
       .populate("likes");
+    console.log(post);
     const pipeline = [{ $match: { _id: post._id } }];
     const data = await Post.aggregate(pipeline);
     res.status(200).json(...data);
@@ -401,9 +402,10 @@ router.get("/profile/:username/images/:skip", async (req, res) => {
       { $match: { userId: user._id } },
       { $sort: { createdAt: -1 } },
       { $skip: skip },
-      { $limit: 6 },
+      { $limit: 9 },
     ];
     const profileImages = await Image.aggregate(pipeline);
+    console.log(profileImages);
     res.status(200).json(profileImages);
   } catch (err) {
     res.status(500).json(err);
@@ -569,11 +571,6 @@ router.get("/:id/comments/", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id).populate("comments");
     const comments = post.comments;
-    // const comments = await Promise.all(
-    //   post.comments.map((comment) => {
-    //     return Comment.find({ _id: comment }).populate("likes");
-    //   })
-    // );
     res.status(200).json(comments);
   } catch (err) {
     res.status(500).json(err);

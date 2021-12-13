@@ -14,6 +14,7 @@ const authRouter = require("./routes/auth");
 const postRouter = require("./routes/posts");
 const commentRouter = require("./routes/comments");
 const notificationRouter = require("./routes/notifications");
+const imageRouter = require("./routes/images");
 
 //Set up mongoose connection
 const mongoDB = process.env.DB_CONNECTION_STRING;
@@ -40,6 +41,7 @@ app.use("/api/users", userRouter);
 app.use("/api/posts", postRouter);
 app.use("/api/comments", commentRouter);
 app.use("/api/notifications", notificationRouter);
+app.use("/api/images", imageRouter);
 
 // view engine setup needed to keep from erroring out - ignore
 app.set("views", path.join(__dirname, "views"));
