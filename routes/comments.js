@@ -17,13 +17,37 @@ router.get("/:id", async (req, res) => {
 // like / dislike a comment on a post
 router.put("/:id/like", async (req, res) => {
   try {
-    const comment = await Comment.findById(req.params.id);
-    if (!comment.likes.includes(req.body.userId)) {
-      await comment.updateOne({ $push: { likes: req.body.userId } });
-      res.status(200).json("The comment has been liked");
+    const comment = await Comment.findById(req.params.id).populate("postId");
+    // likerIds
+    if (!comment.likerIds.includes(req.body.userId)) {
+      await post.updateOne({ $push: { likerIds: req.body.userId } });
     } else {
-      await comment.updateOne({ $pull: { likes: req.body.userId } });
+      await post.updateOne({ $pull: { likerIds: req.body.userId } });
+    }
+
+    // like objects
+    const checkExists = await Like.find({
+      userId: req.body.userId,
+      postId: comment.postId,
+      commentId: comment._id,
+      type: "commentLike",
+    });
+    console.log("checkExists", checkExists);
+    if (checkExists.length > 0) {
+      const likeToRemove = await Like.findById(checkExists[0]._id);
+      await comment.updateOne({ $pull: { likes: likeToRemove._id } });
+      await likeToRemove.deleteOne();
       res.status(200).json("The comment has been disliked");
+    } else {
+      const like = new Like({
+        userId: req.body.userId,
+        postId: comment.postId,
+        commentId: comment._id,
+        type: "commentLike",
+      });
+      await comment.updateOne({ $push: { likes: like } });
+      like = await like.save();
+      res.status(200).json("The comment has been liked");
     }
   } catch (err) {
     res.status(500).json(err);

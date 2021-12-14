@@ -567,11 +567,44 @@ router.post("/:id/comment", async (req, res) => {
 });
 
 // fetch comments on a post
-router.get("/:id/comments/", async (req, res) => {
+router.get("/:id/comments/:skip", async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate("comments");
-    const comments = post.comments;
-    res.status(200).json(comments);
+    const skip = await parseInt(req.params.skip);
+    const post = await Post.findById(req.params.id);
+    let comments = [];
+    let commentsPipeline = [];
+
+    const getPostComments = async () => {
+      await Promise.all(
+        post.comments.map(async (commentId) => {
+          let comment = await Comment.findById(commentId);
+          return comments.push({ _id: comment._id });
+        })
+      );
+    };
+
+    const buildPipeline = async () => {
+      let pipeline;
+      if (comments.length > 0) {
+        pipeline = [
+          {
+            $match: {
+              $or: await comments,
+            },
+          },
+          { $sort: { createdAt: 1 } },
+          { $skip: skip },
+          { $limit: 5 },
+        ];
+        commentsPipeline = await Comment.aggregate(pipeline);
+        res.status(200).json(commentsPipeline);
+      } else {
+        commentsPipeline = [];
+        res.status(200).json(commentsPipeline);
+      }
+    };
+
+    getPostComments().then(() => buildPipeline());
   } catch (err) {
     res.status(500).json(err);
   }
