@@ -290,7 +290,6 @@ router.put("/:id/like", async (req, res) => {
       type: "postLike",
       commentId: null,
     });
-    console.log("checkExists", checkExists);
     if (checkExists.length > 0) {
       const likeToRemove = await Like.findById(checkExists[0]._id);
       await post.updateOne({ $pull: { likes: likeToRemove._id } });

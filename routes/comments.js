@@ -3,6 +3,7 @@ const Comment = require("../models/comment");
 const User = require("../models/user");
 const Post = require("../models/post");
 const Notification = require("../models/notification");
+const Like = require("../models/like");
 
 // get a comment
 router.get("/:id", async (req, res) => {
@@ -17,14 +18,14 @@ router.get("/:id", async (req, res) => {
 // like / dislike a comment on a post
 router.put("/:id/like", async (req, res) => {
   try {
-    const comment = await Comment.findById(req.params.id).populate("postId");
+    const comment = await Comment.findById(req.params.id);
+    const post = await Post.findById(comment.postId);
     // likerIds
     if (!comment.likerIds.includes(req.body.userId)) {
-      await post.updateOne({ $push: { likerIds: req.body.userId } });
+      await comment.updateOne({ $push: { likerIds: req.body.userId } });
     } else {
-      await post.updateOne({ $pull: { likerIds: req.body.userId } });
+      await comment.updateOne({ $pull: { likerIds: req.body.userId } });
     }
-
     // like objects
     const checkExists = await Like.find({
       userId: req.body.userId,
@@ -32,10 +33,10 @@ router.put("/:id/like", async (req, res) => {
       commentId: comment._id,
       type: "commentLike",
     });
-    console.log("checkExists", checkExists);
     if (checkExists.length > 0) {
       const likeToRemove = await Like.findById(checkExists[0]._id);
       await comment.updateOne({ $pull: { likes: likeToRemove._id } });
+      await post.updateOne({ $pull: { likes: likeToRemove._id } });
       await likeToRemove.deleteOne();
       res.status(200).json("The comment has been disliked");
     } else {
@@ -46,6 +47,7 @@ router.put("/:id/like", async (req, res) => {
         type: "commentLike",
       });
       await comment.updateOne({ $push: { likes: like } });
+      await post.updateOne({ $push: { likes: like } });
       like = await like.save();
       res.status(200).json("The comment has been liked");
     }
@@ -75,6 +77,7 @@ router.delete("/:id", async (req, res) => {
     const comment = await Comment.findById(req.params.id)
       .populate("userId")
       .populate("postId")
+      .populate("likes")
       .populate("notifications");
     const userDeletingTheComment = await User.findById(req.body.userId);
     if (
@@ -114,6 +117,17 @@ router.delete("/:id", async (req, res) => {
           await notification.deleteOne();
         }
       };
+
+      // find and delete all likes from the likes collection
+      const removeFromLikesCollection = async () => {
+        if (comment.likes) {
+          comment.likes.forEach(async (commentLike) => {
+            let like = await Like.findById(commentLike._id);
+            like.deleteOne();
+          });
+        }
+      };
+
       // find and delete from the post's comments array
       const removeCommentFromPostComments = async () => {
         let post = await Post.findById(comment.postId);
@@ -142,6 +156,7 @@ router.delete("/:id", async (req, res) => {
 
       // remove everything sequentially
       removeNotifications()
+        .then(() => removeFromLikesCollection())
         .then(() => removeCommentFromPostComments())
         .then(() => removeCommentFromCommenter())
         .then(() => removeComment());
