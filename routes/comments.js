@@ -170,4 +170,93 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// get likers of a comment
+router.get("/:commentId/likers/:skip/:userId", async (req, res) => {
+  const comment = await Comment.findById(req.params.commentId).populate(
+    "likes"
+  );
+  const user = await User.findById(req.params.userId);
+  const skip = await parseInt(req.params.skip);
+  try {
+    let likers = [];
+    let likerPipeline = [];
+    let followers = [];
+    let followings = [];
+    let likersList = [];
+    const followingsCheck = await Promise.all(user.followings);
+
+    const getLikers = async () => {
+      await Promise.all(
+        comment.likes.map(async (likeId) => {
+          let user = await User.findById(likeId.userId);
+          return likers.push({ _id: user._id });
+        })
+      );
+    };
+
+    const getFollowers = async () => {
+      await Promise.all(
+        user.followers.map(async (followerId) => {
+          let follower = await User.findById(followerId);
+          return followers.push({ _id: follower._id });
+        })
+      );
+    };
+
+    const getFollowings = async () => {
+      await Promise.all(
+        user.followings.map(async (followingId) => {
+          let following = await User.findById(followingId);
+          return followings.push({ _id: following._id });
+        })
+      );
+    };
+
+    const buildPipeline = async () => {
+      let pipeline;
+      if (likers.length > 0) {
+        pipeline = [
+          {
+            $match: {
+              $or: await likers,
+            },
+          },
+          { $sort: { username: 1 } },
+          { $skip: skip },
+          { $limit: 10 },
+        ];
+        likerPipeline = await User.aggregate(pipeline);
+      } else {
+        likerPipeline = [];
+      }
+    };
+
+    const buildlikersList = async () => {
+      likerPipeline.map((liker) => {
+        const { _id, username, avatar, firstname, lastname } = liker;
+        const followingStatus = followingsCheck.includes(liker._id.toString());
+        const followerStatus = true;
+        likersList.push({
+          _id,
+          username,
+          avatar,
+          firstname,
+          lastname,
+          followingStatus,
+          followerStatus,
+        });
+      });
+      res.status(200).json(likersList);
+    };
+
+    getLikers()
+      .then(() => getFollowers())
+      .then(() => getFollowings())
+      .then(() => buildPipeline())
+      .then(() => buildlikersList());
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
 module.exports = router;
