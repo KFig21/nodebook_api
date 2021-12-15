@@ -9,6 +9,7 @@ const UserSchema = new Schema(
     firstname: { required: true, type: String },
     lastname: { required: true, type: String },
     password: { required: true, type: String },
+    theme: { type: String, default: "default" },
     website: { type: String, default: "" },
     location: { type: String, default: "" },
     birthday: { type: String, default: "" },
