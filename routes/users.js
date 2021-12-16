@@ -101,6 +101,20 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+// update user theme
+router.put("/:id/theme", async (req, res) => {
+  try {
+    // find and update the user
+    let user = await User.findById(req.body.userId);
+    let theme = req.body.theme;
+    user.theme = theme;
+    user = await user.save();
+    res.status(200).json(`Theme changed to ${theme}`);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
+
 // delete user
 router.delete("/:id", async (req, res) => {
   if (req.body.userId === req.params.id || req.body.isAdmin) {
