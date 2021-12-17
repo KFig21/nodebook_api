@@ -401,7 +401,7 @@ router.get("/profile/:username/images/:skip", async (req, res) => {
       { $match: { userId: user._id } },
       { $sort: { createdAt: -1 } },
       { $skip: skip },
-      { $limit: 9 },
+      { $limit: 12 },
     ];
     const profileImages = await Image.aggregate(pipeline);
     console.log(profileImages);

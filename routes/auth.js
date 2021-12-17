@@ -42,8 +42,13 @@ router.post("/register", async (req, res, next) => {
 router.post("/login", async (req, res) => {
   try {
     // check if user used email or username to login
-    const email = await User.findOne({ email: req.body.usermail });
-    const username = await User.findOne({ username: req.body.usermail });
+    const email = await User.findOne({ email: req.body.usermail }).collation({
+      locale: "en",
+      strength: 2,
+    });
+    const username = await User.findOne({
+      username: req.body.usermail,
+    }).collation({ locale: "en", strength: 2 });
     let user = "";
     // set the user variable to either the email or username found
     if (email) {
