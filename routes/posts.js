@@ -423,6 +423,7 @@ router.get("/:postId/likers/:skip/:userId", async (req, res) => {
     let followings = [];
     let likersList = [];
     const followingsCheck = await Promise.all(user.followings);
+    const followersCheck = await Promise.all(user.followers);
 
     const getLikers = async () => {
       await Promise.all(
@@ -474,7 +475,7 @@ router.get("/:postId/likers/:skip/:userId", async (req, res) => {
       likerPipeline.map((liker) => {
         const { _id, username, avatar, firstname, lastname } = liker;
         const followingStatus = followingsCheck.includes(liker._id.toString());
-        const followerStatus = true;
+        const followerStatus = followersCheck.includes(liker._id.toString());
         likersList.push({
           _id,
           username,
