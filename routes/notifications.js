@@ -84,7 +84,6 @@ router.delete("/:id", async (req, res) => {
           (notificationIteration) =>
             notificationIteration.toString() !== notification._id.toString()
         );
-        console.log("----", comment);
         comment.notifications = [...newNotifications];
         comment = await comment.save();
       } catch (err) {
@@ -155,7 +154,6 @@ router.delete("/", async (req, res) => {
             (notificationIteration) =>
               notificationIteration.toString() !== notification._id.toString()
           );
-          console.log("----", comment);
           comment.notifications = [...newNotifications];
           comment = await comment.save();
         } catch (err) {

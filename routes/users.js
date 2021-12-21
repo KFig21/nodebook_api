@@ -77,13 +77,11 @@ router.put("/:id", async (req, res) => {
       isUsernameInDB.length > 0 &&
       req.body.username !== userCurrentState.username
     ) {
-      console.log("Username already in use");
       return res.status(500).send({ msg: "Username already in use" });
     }
     // check if email is  already in use
     const isEmailInDB = await User.find({ email: req.body.email });
     if (isEmailInDB.length > 0 && req.body.email !== userCurrentState.email) {
-      console.log("email already in use");
       return res.status(500).json({ msg: "email already in use" });
     }
     try {
@@ -91,7 +89,6 @@ router.put("/:id", async (req, res) => {
       const user = await User.findByIdAndUpdate(req.params.id, {
         $set: req.body,
       });
-      console.log("user", user);
       res.status(200).json("Account has been updated");
     } catch (err) {
       return res.status(500).json(err);
@@ -131,7 +128,6 @@ router.delete("/:id", async (req, res) => {
 
 // get user
 router.get("/", async (req, res) => {
-  console.log("sahsadi");
   const userId = req.query.userId;
   const username = req.query.username;
   try {

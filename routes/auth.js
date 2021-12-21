@@ -1,42 +1,74 @@
 const router = require("express").Router();
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
+const { body, validationResult } = require("express-validator");
 
 // Register
-router.post("/register", async (req, res, next) => {
-  try {
-    // check if username is  already in use
-    const isUserInDB = await User.find({ username: req.body.username });
-    if (isUserInDB.length > 0) {
-      return res.status(500).json("Username already in use");
+router.post(
+  "/register",
+  // Validate and sanitise fields.
+  body("email").isLength(1).withMessage("Minimum length 1 characters").escape(),
+  body("username")
+    .isLength(1)
+    .withMessage("Minimum length 1 characters")
+    .escape(),
+  body("firstname")
+    .isLength(1)
+    .withMessage("Minimum length 1 characters")
+    .escape(),
+  body("lastname")
+    .isLength(1)
+    .withMessage("Minimum length 1 characters")
+    .escape(),
+  body("password").isLength(6).withMessage("Minimum length 6 characters"),
+  body("confirmPassword").custom((value, { req }) => {
+    if (value !== req.body.password) {
+      return next("Password confirmation does not match password");
     }
-    // check if email is  already in use
-    const isEmailInDB = await User.find({ email: req.body.email });
-    if (isEmailInDB.length > 0) {
-      return res.status(500).json("email already in use");
+    // Indicates the success of this synchronous custom validator
+    return true;
+  }),
+  async (req, res, next) => {
+    // Extract the validation errors from a request.
+    const errors = validationResult(req);
+    if (errors.isEmpty()) {
+      try {
+        // check if username is  already in use
+        const isUserInDB = await User.find({ username: req.body.username });
+        if (isUserInDB.length > 0) {
+          return res.status(500).json("Username already in use");
+        }
+        // check if email is  already in use
+        const isEmailInDB = await User.find({ email: req.body.email });
+        if (isEmailInDB.length > 0) {
+          return res.status(500).json("email already in use");
+        }
+        // hash password for db
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(req.body.password, salt);
+        // create new user
+        const newUser = await new User({
+          email: req.body.email,
+          username: req.body.username,
+          firstname: req.body.firstname,
+          lastname: req.body.lastname,
+          password: hashedPassword,
+        });
+        // save user and return response
+        try {
+          const user = await newUser.save();
+          res.status(200).json(user);
+        } catch (err) {
+          res.status(500).json(err);
+        }
+      } catch (err) {
+        return next(err);
+      }
+    } else {
+      res.status(500);
     }
-    // hash password for db
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(req.body.password, salt);
-    // create new user
-    const newUser = await new User({
-      email: req.body.email,
-      username: req.body.username,
-      firstname: req.body.firstname,
-      lastname: req.body.lastname,
-      password: hashedPassword,
-    });
-    // save user and return response
-    try {
-      const user = await newUser.save();
-      res.status(200).json(user);
-    } catch (err) {
-      res.status(500).json(err);
-    }
-  } catch (err) {
-    return next(err);
   }
-});
+);
 
 // Login
 router.post("/login", async (req, res) => {
