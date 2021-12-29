@@ -58,30 +58,23 @@ router.put("/:id/like", async (req, res) => {
 });
 
 // update a comment
-router.put(
-  "/:id",
-  // Validate and sanitise fields.
-  body("body").isLength(1).withMessage("Minimum length 1 characters").escape(),
-  async (req, res) => {
-    // Extract the validation errors from a request.
-    const errors = validationResult(req);
-    if (errors.isEmpty()) {
-      try {
-        const comment = await Comment.findById(req.params.id);
-        if (comment.userId.toString() === req.body.userId.toString()) {
-          await comment.updateOne({ $set: req.body });
-          res.status(200).json("the comment has been updated");
-        } else {
-          res.status(403).json("you can update only your comment");
-        }
-      } catch (err) {
-        res.status(500).json(err);
-      }
+router.put("/:id", async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id);
+    const user = await User.findById(req.body.userId);
+    if (
+      comment.userId.toString() === req.body.userId.toString() ||
+      user.isAdmin
+    ) {
+      await comment.updateOne({ $set: req.body });
+      res.status(200).json("the comment has been updated");
     } else {
-      res.status(500);
+      res.status(403).json("you can update only your comment");
     }
+  } catch (err) {
+    res.status(500).json(err);
   }
-);
+});
 
 // delete a comment
 router.delete("/:id", async (req, res) => {
