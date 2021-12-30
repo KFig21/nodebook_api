@@ -516,10 +516,10 @@ router.post("/:id/comment", async (req, res) => {
       const saveComment = async () => {
         // find and update the user comments
         let user = await User.findById(req.body.userId);
-        user.comments = [...user.comments, savedComment._id];
+        user.comments = await [...user.comments, savedComment._id];
         user = await user.save();
         // find and update the post's comments
-        post.comments = [...post.comments, savedComment._id];
+        post.comments = await [...post.comments, savedComment._id];
         post = await post.save();
       };
 
@@ -559,7 +559,7 @@ router.post("/:id/comment", async (req, res) => {
     } catch (err) {
       return res.status(500).json(err);
     }
-    res.status(200).json(savedPost);
+    res.status(200).json(post);
   } catch (err) {
     res.status(500).json(err);
   }
