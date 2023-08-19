@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const User = require("../models/user");
-const bcrypt = require("bcrypt");
+const bcryptjs = require("bcryptjs");
 const { body, validationResult } = require("express-validator");
 
 // Register
@@ -44,8 +44,8 @@ router.post(
           return res.status(500).json("email already in use");
         }
         // hash password for db
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(req.body.password, salt);
+        const salt = await bcryptjs.genSalt(10);
+        const hashedPassword = await bcryptjs.hash(req.body.password, salt);
         // create new user
         const newUser = await new User({
           email: req.body.email,
@@ -92,7 +92,7 @@ router.post("/login", async (req, res) => {
     // send error if no valid user is found
     !user && res.status(404).json("user not found");
     // check password
-    const validPassword = await bcrypt.compare(
+    const validPassword = await bcryptjs.compare(
       req.body.password,
       user.password
     );

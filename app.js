@@ -9,8 +9,8 @@ const createError = require("http-errors");
 const cors = require("cors");
 
 // import routes
-const userRouter = require("./routes/users");
 const authRouter = require("./routes/auth");
+const userRouter = require("./routes/users");
 const postRouter = require("./routes/posts");
 const commentRouter = require("./routes/comments");
 const notificationRouter = require("./routes/notifications");
@@ -35,7 +35,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions)); // Use this after the variable declaration
 
-// user routes
+// use routes
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/posts", postRouter);

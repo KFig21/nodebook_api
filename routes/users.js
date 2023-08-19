@@ -1,6 +1,6 @@
 const User = require("../models/user");
 const router = require("express").Router();
-const bcrypt = require("bcrypt");
+const bcryptjs = require("bcryptjs");
 //  img upload
 const multer = require("multer");
 const { uploadFile, deleteFile } = require("../s3");
@@ -63,8 +63,8 @@ router.put("/:id", async (req, res) => {
   if (req.body.userId === req.params.id || req.body.isAdmin) {
     if (req.body.password) {
       try {
-        const salt = await bcrypt.genSalt(10);
-        req.body.password = await bcrypt.hash(req.body.password, salt);
+        const salt = await bcryptjs.genSalt(10);
+        req.body.password = await bcryptjs.hash(req.body.password, salt);
       } catch (err) {
         return res.status(500).json(err);
       }
