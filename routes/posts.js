@@ -574,12 +574,24 @@ router.get("/:id/comments/:skip", async (req, res) => {
     let commentsPipeline = [];
 
     const getPostComments = async () => {
-      await Promise.all(
-        post.comments.map(async (commentId) => {
-          let comment = await Comment.findById(commentId);
-          return comments.push({ _id: comment._id });
-        })
-      );
+      try {
+        await Promise.all(
+          post.comments.map(async (commentId) => {
+            try {
+              let comment = await Comment.findById(commentId);
+              if (comment) {
+                comments.push({ _id: comment._id });
+              }
+            } catch (error) {
+              // Handle error if Comment.findById fails for this commentId
+              console.error(`Error fetching comment ${commentId}: ${error.message}`);
+            }
+          })
+        );
+      } catch (error) {
+        // Handle error if Promise.all or other parts of the function fail
+        console.error(`Error fetching post comments: ${error.message}`);
+      }
     };
 
     const buildPipeline = async () => {
